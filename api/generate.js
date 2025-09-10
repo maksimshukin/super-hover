@@ -5,14 +5,18 @@ const fetch = require('node-fetch');
 require('dotenv').config();
 
 export default async function handler(req, res) {
+    console.log('Request method:', req.method);
+    console.log('Request headers:', req.headers);
+    
     // Настраиваем CORS
-    res.setHeader('Access-Control-Allow-Credentials', true);
+    res.setHeader('Access-Control-Allow-Credentials', 'true');
     res.setHeader('Access-Control-Allow-Origin', 'https://dsgnmax.ru');
     res.setHeader('Access-Control-Allow-Methods', 'GET,OPTIONS,PATCH,DELETE,POST,PUT');
     res.setHeader('Access-Control-Allow-Headers', 'X-CSRF-Token, X-Requested-With, Accept, Accept-Version, Content-Length, Content-MD5, Content-Type, Date, X-Api-Version');
 
     // Обрабатываем preflight запросы
     if (req.method === 'OPTIONS') {
+        console.log('Handling OPTIONS request');
         res.status(200).end();
         return;
     }
