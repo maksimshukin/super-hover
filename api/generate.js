@@ -8,12 +8,13 @@ export default async function handler(req, res) {
     console.log('Request method:', req.method);
     console.log('Request headers:', req.headers);
     
-    // Настраиваем CORS
-    res.setHeader('Access-Control-Allow-Credentials', 'true');
-    res.setHeader('Access-Control-Allow-Origin', 'https://dsgnmax.ru');
+    // --- ИСПРАВЛЕННЫЙ БЛОК CORS ---
+    // Разрешаем запросы с любого источника
+    res.setHeader('Access-Control-Allow-Origin', '*'); 
     res.setHeader('Access-Control-Allow-Methods', 'GET,OPTIONS,PATCH,DELETE,POST,PUT');
     res.setHeader('Access-Control-Allow-Headers', 'X-CSRF-Token, X-Requested-With, Accept, Accept-Version, Content-Length, Content-MD5, Content-Type, Date, X-Api-Version');
-
+    // Заголовок 'Access-Control-Allow-Credentials' убран, так как он несовместим с '*'
+    
     // Обрабатываем preflight запросы
     if (req.method === 'OPTIONS') {
         console.log('Handling OPTIONS request');
