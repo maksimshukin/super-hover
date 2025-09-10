@@ -3,25 +3,23 @@ const express = require('express');
 const fetch = require('node-fetch');
 const cors = require('cors');
 
-// Загружаем переменные окружения (наш ключ)
+// Загружаем переменные окружения
 require('dotenv').config();
 
 const app = express();
-const port = process.env.PORT || 3000;
 
 // Разрешаем запросы с любого источника
-// ИСПРАВЛЕННЫЙ КОД
 const corsOptions = {
     origin: 'https://dsgnmax.ru' // Разрешаем запросы только с этого домена
-  };
-  app.use(cors(corsOptions)); // <-- ИСПРАВЛЕНИЕ 1: Передаем опции в cors
-  app.options('/api/generate', cors(corsOptions));
-  
-  // Позволяем серверу принимать JSON
-  app.use(express.json());
-  
-  // Создаем единственный endpoint /api/generate
-  app.post('/api/generate', async (req, res) => {
+};
+app.use(cors(corsOptions));
+app.options('/api/generate', cors(corsOptions));
+
+// Позволяем серверу принимать JSON
+app.use(express.json());
+
+// Создаем единственный endpoint /api/generate
+app.post('/api/generate', async (req, res) => {
       const userPrompt = req.body.prompt;
       const GEMINI_API_KEY = process.env.GEMINI_API_KEY;
   
@@ -109,3 +107,6 @@ const corsOptions = {
           res.status(500).json({ error: 'Не удалось обработать запрос.' });
       }
   });
+
+// Экспортируем app для Vercel
+module.exports = app;
