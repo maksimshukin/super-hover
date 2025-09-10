@@ -1,8 +1,10 @@
 // Файл: /api/generate.js
-const fetch = require('node-fetch');
 
-// Загружаем переменные окружения
-require('dotenv').config();
+// Используем динамический import(), который корректно работает с node-fetch в среде Vercel
+const fetch = (...args) => import('node-fetch').then(({default: fetch}) => fetch(...args));
+
+// dotenv не нужен на Vercel, переменные окружения добавляются через панель управления
+// require('dotenv').config(); 
 
 export default async function handler(req, res) {
     // --- НАЧАЛО БЛОКА CORS ---
@@ -19,27 +21,27 @@ export default async function handler(req, res) {
     }
     // --- КОНЕЦ БЛОКА CORS ---
 
-    // Проверяем, что это POST запрос
     if (req.method !== 'POST') {
-        return res.status(405).json({ error: 'Method not allowed' });
+        return res.status(405).json({ error: 'Method Not Allowed' });
     }
-
-    const userPrompt = req.body.prompt;
-    const GEMINI_API_KEY = process.env.GEMINI_API_KEY;
-
-    if (!GEMINI_API_KEY) {
-        return res.status(500).json({ error: 'API ключ не найден на сервере.' });
-    }
-    if (!userPrompt) {
-        return res.status(400).json({ error: 'Текст запроса (prompt) отсутствует.' });
-    }
-
-    const API_URL = `https://generativelanguage.googleapis.com/v1beta/models/gemini-pro:generateContent?key=${GEMINI_API_KEY}`;
-
-    // Системный промпт (остается без изменений)
-    const systemPrompt = `Ты — AI-ассистент, эксперт по созданию CSS hover-эффектов... (ваш промпт здесь)`;
 
     try {
+        const userPrompt = req.body.prompt;
+        const GEMINI_API_KEY = process.env.GEMINI_API_KEY;
+
+        if (!GEMINI_API_KEY) {
+            console.error("Server Error: GEMINI_API_KEY is not configured.");
+            return res.status(500).json({ error: 'API ключ не сконфигурирован на сервере.' });
+        }
+        if (!userPrompt) {
+            return res.status(400).json({ error: 'Текст запроса (prompt) отсутствует.' });
+        }
+
+        const API_URL = `https://generativelanguage.googleapis.com/v1beta/models/gemini-pro:generateContent?key=${GEMINI_API_KEY}`;
+
+        // Ваш системный промпт (без изменений)
+        const systemPrompt = `Ты — AI-ассистент, эксперт по созданию CSS hover-эффектов. Твоя задача — сгенерировать JSON-объект, описывающий эффект, на основе запроса пользователя. ТЫ ОБЯЗАН ОТВЕЧАТЬ ТОЛЬКО JSON-ОБЪЕКТОМ В ФОРМАТЕ MARKDOWN И БОЛЬШЕ НИЧЕМ. Структура JSON должна быть следующей: { "parent": { /* Стили для основного элемента */ }, "children": { ".css-selector": { /* Стили для дочернего элемента */ } } } Каждый объект стилей может содержать следующие свойства (если свойство не нужно, не включай его): - transformEnabled: true - translateX/translateY: число (обычно от -50 до 50) - rotateX/rotateY/rotateZ: число (в градусах, обычно от -90 до 90) - scaleX/scaleY: число (обычно от 0.5 до 1.5) - skewX/skewY: число (в градусах, обычно от -45 до 45) - styleEnabled: true - opacity: число (от 0 до 1) - backgroundColor: строка (hex или rgba) - boxShadowEnabled: true - boxShadowX/boxShadowY/boxShadowBlur/boxShadowSpread: число - boxShadowColor: строка (rgba) - boxShadowInset: true/false - textEnabled: true - color: строка (hex или rgba) - animationEnabled: true - duration: число (в миллисекундах, обычно от 150 до 600) - easing: 'ease', 'ease-in-out', 'ease-in', 'ease-out', 'linear' Пример: Пользователь просит "плавный подъем с тенью". Твой ответ: \`\`\`json { "parent": { "transformEnabled": true, "translateY": -10, "boxShadowEnabled": true, "boxShadowY": 20, "boxShadowBlur": 30, "boxShadowColor": "rgba(0,0,0,0.2)", "animationEnabled": true, "duration": 300, "easing": "ease-out" }, "children": {} } \`\`\``;
+
         const geminiResponse = await fetch(API_URL, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
@@ -58,7 +60,7 @@ export default async function handler(req, res) {
         res.status(200).json(data);
 
     } catch (error) {
-        console.error('Ошибка прокси-сервера:', error);
-        res.status(500).json({ error: 'Не удалось обработать запрос.' });
+        console.error('Ошибка выполнения функции:', error);
+        res.status(500).json({ error: 'Внутренняя ошибка сервера.', details: error.message });
     }
 }
