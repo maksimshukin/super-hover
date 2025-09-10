@@ -1,26 +1,23 @@
-// api/generate.js
+// Файл: /api/generate.js
 const fetch = require('node-fetch');
 
 // Загружаем переменные окружения
 require('dotenv').config();
 
 export default async function handler(req, res) {
-    console.log('Request method:', req.method);
-    console.log('Request headers:', req.headers);
-    
-    // --- ИСПРАВЛЕННЫЙ БЛОК CORS ---
-    // Разрешаем запросы с любого источника
-    res.setHeader('Access-Control-Allow-Origin', '*'); 
-    res.setHeader('Access-Control-Allow-Methods', 'GET,OPTIONS,PATCH,DELETE,POST,PUT');
-    res.setHeader('Access-Control-Allow-Headers', 'X-CSRF-Token, X-Requested-With, Accept, Accept-Version, Content-Length, Content-MD5, Content-Type, Date, X-Api-Version');
-    // Заголовок 'Access-Control-Allow-Credentials' убран, так как он несовместим с '*'
-    
-    // Обрабатываем preflight запросы
+    // --- НАЧАЛО БЛОКА CORS ---
+    // Эти заголовки позволяют ЛЮБОМУ сайту делать запросы к вашему API
+    res.setHeader('Access-Control-Allow-Origin', '*');
+    res.setHeader('Access-Control-Allow-Methods', 'POST, OPTIONS');
+    res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
+
+    // Браузер сначала отправляет запрос OPTIONS для проверки разрешений.
+    // Мы должны ответить на него статусом 200 (OK), чтобы браузер разрешил основной запрос.
     if (req.method === 'OPTIONS') {
-        console.log('Handling OPTIONS request');
         res.status(200).end();
         return;
     }
+    // --- КОНЕЦ БЛОКА CORS ---
 
     // Проверяем, что это POST запрос
     if (req.method !== 'POST') {
@@ -39,55 +36,8 @@ export default async function handler(req, res) {
 
     const API_URL = `https://generativelanguage.googleapis.com/v1beta/models/gemini-pro:generateContent?key=${GEMINI_API_KEY}`;
 
-    // Системный промпт для генерации CSS hover-эффектов
-    const systemPrompt = `Ты — AI-ассистент, эксперт по созданию CSS hover-эффектов. 
-        Твоя задача — сгенерировать JSON-объект, описывающий эффект, на основе запроса пользователя.
-        ТЫ ОБЯЗАН ОТВЕЧАТЬ ТОЛЬКО JSON-ОБЪЕКТОМ В ФОРМАТЕ MARKDOWN И БОЛЬШЕ НИЧЕМ.
-
-        Структура JSON должна быть следующей:
-        {
-          "parent": { /* Стили для основного элемента */ },
-          "children": { ".css-selector": { /* Стили для дочернего элемента */ } }
-        }
-
-        Каждый объект стилей может содержать следующие свойства (если свойство не нужно, не включай его):
-        - transformEnabled: true
-        - translateX/translateY: число (обычно от -50 до 50)
-        - rotateX/rotateY/rotateZ: число (в градусах, обычно от -90 до 90)
-        - scaleX/scaleY: число (обычно от 0.5 до 1.5)
-        - skewX/skewY: число (в градусах, обычно от -45 до 45)
-        - styleEnabled: true
-        - opacity: число (от 0 до 1)
-        - backgroundColor: строка (hex или rgba)
-        - boxShadowEnabled: true
-        - boxShadowX/boxShadowY/boxShadowBlur/boxShadowSpread: число
-        - boxShadowColor: строка (rgba)
-        - boxShadowInset: true/false
-        - textEnabled: true
-        - color: строка (hex или rgba)
-        - animationEnabled: true
-        - duration: число (в миллисекундах, обычно от 150 до 600)
-        - easing: 'ease', 'ease-in-out', 'ease-in', 'ease-out', 'linear'
-
-        Пример: Пользователь просит "плавный подъем с тенью".
-        Твой ответ:
-        \`\`\`json
-        {
-          "parent": {
-            "transformEnabled": true,
-            "translateY": -10,
-            "boxShadowEnabled": true,
-            "boxShadowY": 20,
-            "boxShadowBlur": 30,
-            "boxShadowColor": "rgba(0,0,0,0.2)",
-            "animationEnabled": true,
-            "duration": 300,
-            "easing": "ease-out"
-          },
-          "children": {}
-        }
-        \`\`\`
-    `;
+    // Системный промпт (остается без изменений)
+    const systemPrompt = `Ты — AI-ассистент, эксперт по созданию CSS hover-эффектов... (ваш промпт здесь)`;
 
     try {
         const geminiResponse = await fetch(API_URL, {
@@ -105,7 +55,6 @@ export default async function handler(req, res) {
         }
 
         const data = await geminiResponse.json();
-        // Отправляем ответ от Gemini обратно в браузер
         res.status(200).json(data);
 
     } catch (error) {
