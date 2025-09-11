@@ -6,19 +6,16 @@ export default async function handler(req, res) {
     res.setHeader('Access-Control-Allow-Origin', '*');
     res.setHeader('Access-Control-Allow-Methods', 'POST, OPTIONS');
     res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
-
     if (req.method === 'OPTIONS') {
         res.status(200).end();
         return;
     }
-    // --- КОНЕЦ БЛОКА CORS ---
 
     if (req.method !== 'POST') {
         return res.status(405).json({ error: 'Method Not Allowed' });
     }
 
     try {
-        // Получаем не только промпт, но и контекст DOM
         const { prompt: userPrompt, domContext } = req.body;
         const GEMINI_API_KEY = process.env.GEMINI_API_KEY;
 
@@ -31,52 +28,55 @@ export default async function handler(req, res) {
 
         const API_URL = `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash-latest:generateContent?key=${GEMINI_API_KEY}`;
 
-        // --- НОВЫЙ СУПЕР-ПРОМПТ ---
-        const systemPrompt = `Ты — AI-ассистент, эксперт по созданию сложных CSS hover-эффектов. Твоя задача — сгенерировать JSON-объект на основе запроса пользователя и предоставленного HTML-контекста.
+        // --- НОВЫЙ, УЛУЧШЕННЫЙ СИСТЕМНЫЙ ПРОМПТ ---
+        const systemPrompt = `Ты — AI-ассистент, эксперт по CSS hover-эффектам. Твоя задача — сгенерировать JSON-объект на основе запроса и HTML-контекста.
         ТЫ ОБЯЗАН ОТВЕЧАТЬ ТОЛЬКО JSON-ОБЪЕКТОМ В ФОРМАТЕ MARKDOWN И БОЛЬШЕ НИЧЕМ.
 
-        СТРУКТУРА ВХОДНЫХ ДАННЫХ:
-        1.  Запрос пользователя (например: "добавь тень, лёгкий подъём и поворот на 10 градусов по оси X карточке, внутри карточки тексту красный цвет, а родителю перспективу 400").
-        2.  HTML-контекст (domContext), который описывает структуру элементов.
-
-        ТВОЯ ЗАДАЧА:
-        1.  Внимательно проанализируй запрос и сопоставь слова ("карточка", "текст", "родитель") с селекторами из domContext.
-        2.  Сгенерируй JSON, который применяет эффекты к правильным селекторам.
-        3.  Если свойство не упоминается, НЕ ДОБАВЛЯЙ его в JSON. Используй только те свойства, о которых просит пользователь.
-        4.  Для свойства 'transform' всегда включай 'transformEnabled: true'.
+        ПРАВИЛА ГЕНЕРАЦИИ:
+        1.  Анализируй запрос и HTML-контекст (domContext), чтобы применить стили к правильным селекторам.
+        2.  Если пользователь просит применить эффект к "родителю" (например, перспективу), применяй его к "Выбранному элементу" (ключ "parent" в JSON).
+        3.  Включай в JSON ТОЛЬКО те свойства, о которых просит пользователь. Не добавляй ничего лишнего.
+        4.  Для любых трансформаций (translate, scale, rotate) ВСЕГДА добавляй "transformEnabled": true.
+        5.  Для любых текстовых эффектов ВСЕГДА добавляй "textEnabled": true.
+        6.  Для любых эффектов тени ВСЕГДА добавляй "boxShadowEnabled": true.
+        7.  Всегда добавляй "animationEnabled": true и "duration": 300 для плавности, если не указано иное.
+        8.  НЕ ИСПОЛЬЗУЙ 'undefined', 'null' или пустые строки в значениях. Если значение неизвестно, просто не включай это свойство в JSON.
 
         СТРУКТУРА JSON-ОТВЕТА:
         {
           "parent": { /* Стили для "Выбранного элемента" */ },
           "children": {
-            ".child-selector-1": { /* Стили для первого дочернего элемента */ },
-            ".child-selector-2": { /* Стили для второго дочернего элемента */ }
+            ".child-selector": { /* Стили для дочернего элемента */ }
           }
         }
-        
-        ВАЖНО: Эффекты для "Родителя" (например, perspective) нужно применять к "Выбранному элементу" (parent), так как это частый паттерн в CSS-анимации (родитель контейнера получает перспективу).
 
         ПРИМЕР РАБОТЫ:
-        - Запрос: "поверни карточку на 10 градусов по Y, а заголовку сделай синий цвет"
+        - Запрос: "добавь тень, лёгкий подъём и поворот на 10 градусов по оси X карточке, внутри карточки тексту красный цвет, а родителю перспективу 400."
         - domContext:
-          - Родитель: div.t-col
-          - Выбранный элемент (карточка): a.t-card
+          - Родитель: .t-list__item
+          - Выбранный элемент (карточка): .t-card
           - Дочерние элементы:
-            - div.t-card__title (заголовок)
-        - Твой правильный ответ:
+            - .t-card__text (текст)
+        - Твой ПРАВИЛЬНЫЙ ответ:
         \`\`\`json
         {
           "parent": {
             "transformEnabled": true,
-            "rotateY": 10,
+            "translateY": -10,
+            "rotateX": 10,
+            "perspectiveEnabled": true,
+            "perspectiveValue": 400,
+            "boxShadowEnabled": true,
+            "boxShadowY": 15,
+            "boxShadowBlur": 25,
+            "boxShadowColor": "rgba(0,0,0,0.15)",
             "animationEnabled": true,
-            "duration": 300,
-            "easing": "ease-out"
+            "duration": 300
           },
           "children": {
-            "div.t-card__title": {
+            ".t-card__text": {
               "textEnabled": true,
-              "color": "#0000FF",
+              "color": "red",
               "animationEnabled": true,
               "duration": 300
             }
@@ -84,7 +84,7 @@ export default async function handler(req, res) {
         }
         \`\`\`
         `;
-
+        
         const fullPrompt = `${systemPrompt}\n\nHTML-контекст:\n${domContext}\n\nЗапрос пользователя:\n${userPrompt}`;
 
         const geminiResponse = await fetch(API_URL, {
