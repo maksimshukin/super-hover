@@ -34,11 +34,11 @@ export default async function handler(req, res) {
 
         ПРАВИЛА ГЕНЕРАЦИИ:
         1.  Анализируй запрос и HTML-контекст (domContext), чтобы применить стили к правильным селекторам.
-        2.  Если пользователь просит применить эффект к "родителю" (например, перспективу), применяй его к "Выбранному элементу" (ключ "parent" в JSON).
-        3.  Включай в JSON ТОЛЬКО те свойства, о которых просит пользователь. Не добавляй ничего лишнего.
-        4.  Для любых трансформаций (translate, scale, rotate) ВСЕГДА добавляй "transformEnabled": true.
-        5.  Для любых текстовых эффектов ВСЕГДА добавляй "textEnabled": true.
-        6.  Для любых эффектов тени ВСЕГДА добавляй "boxShadowEnabled": true.
+        2.  Для дочерних элементов в JSON используй ТОЛЬКО короткие, относительные селекторы, предоставленные в контексте.
+        3.  Если пользователь просит применить эффект к "родителю" (например, перспективу), применяй его к "Выбранному элементу" (ключ "parent" в JSON).
+        4.  Включай в JSON ТОЛЬКО те свойства, о которых просит пользователь.
+        5.  Для любых трансформаций (translate, scale, rotate) ВСЕГДА добавляй "transformEnabled": true.
+        6.  Для любых текстовых эффектов ВСЕГДА добавляй "textEnabled": true.
         7.  Всегда добавляй "animationEnabled": true и "duration": 300 для плавности, если не указано иное.
         8.  НЕ ИСПОЛЬЗУЙ 'undefined', 'null' или пустые строки в значениях. Если значение неизвестно, просто не включай это свойство в JSON.
 
@@ -51,12 +51,13 @@ export default async function handler(req, res) {
         }
 
         ПРИМЕР РАБОТЫ:
-        - Запрос: "добавь тень, лёгкий подъём и поворот на 10 градусов по оси X карточке, внутри карточки тексту красный цвет, а родителю перспективу 400."
+        - Запрос: "добавь тень, лёгкий подъём и поворот на 10 градусов по оси X карточке, а заголовку красный цвет."
         - domContext:
           - Родитель: .t-list__item
           - Выбранный элемент (карточка): .t-card
           - Дочерние элементы:
-            - .t-card__text (текст)
+            - .t-card__title (заголовок)
+            - .t-card__descr (описание)
         - Твой ПРАВИЛЬНЫЙ ответ:
         \`\`\`json
         {
@@ -64,8 +65,6 @@ export default async function handler(req, res) {
             "transformEnabled": true,
             "translateY": -10,
             "rotateX": 10,
-            "perspectiveEnabled": true,
-            "perspectiveValue": 400,
             "boxShadowEnabled": true,
             "boxShadowY": 15,
             "boxShadowBlur": 25,
@@ -74,11 +73,9 @@ export default async function handler(req, res) {
             "duration": 300
           },
           "children": {
-            ".t-card__text": {
+            ".t-card__title": {
               "textEnabled": true,
-              "color": "red",
-              "animationEnabled": true,
-              "duration": 300
+              "color": "red"
             }
           }
         }
